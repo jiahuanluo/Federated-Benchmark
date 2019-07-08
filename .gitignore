@@ -1,0 +1,16 @@
+assets
+logs
+.DS_Store
+build
+.git
+*.egg-info
+dist
+output
+data/coco
+data/custom/images
+data/custom/labels
+backup
+weights/*.weights
+__pycache__
+checkpoints
+experiments

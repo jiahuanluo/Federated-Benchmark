@@ -1,0 +1,16 @@
+{
+  "model_name": "Yolo",
+  "model_config": "yolo_model.json",
+  "log_filename": "logs/FL_server_log",
+  "train": "data/custom/train.txt",
+  "valid": "data/custom/valid.txt",
+  "names": "data/custom/classes.names",
+  "n_cpu": 1,
+  "batch_size": 8,
+  "model_path": "yolo_model.pkl",
+  "MIN_NUM_WORKERS": 1,
+  "MAX_NUM_ROUNDS": 100,
+  "NUM_TOLERATE": -1,
+  "NUM_CLIENTS_CONTACTED_PER_ROUND": 1,
+  "ROUNDS_BETWEEN_VALIDATIONS": 1
+}
