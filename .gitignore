@@ -5,13 +5,14 @@ logs
 build
 .git
 *.egg-info
+*.pkl
 dist
 output
 data/coco
 data/custom/images
 data/custom/labels
 backup
-weights/*.weights
+weights/*.74
 __pycache__
 checkpoints
 experiments
