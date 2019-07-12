@@ -142,7 +142,8 @@ class Yolo(object):
             true_positives, pred_scores, pred_labels = [np.concatenate(x, 0) for x in list(zip(*sample_metrics))]
             precision, recall, AP, f1, ap_class = ap_per_class(true_positives, pred_scores, pred_labels, labels)
         else:
-            precision, recall, AP, f1, ap_class = [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] for _ in range(5)]
+            # precision, recall, AP, f1, ap_class = [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] for _ in range(5)]
+            return 0.0, 0.0, 0.0
         total_loss = sum(total_losses) / len(total_losses)
         return total_loss, AP.mean(), recall.mean()
 

@@ -54,8 +54,6 @@ class Aggregator(object):
 
         # for stats
         self.train_losses = []
-        self.train_accuracies = []
-        self.train_recalls = []
         self.avg_test_losses = []
         self.avg_test_maps = []
         self.avg_test_recalls = []
@@ -65,8 +63,8 @@ class Aggregator(object):
         self.best_loss = None
         self.best_weight = None
         self.best_round = -1
-        self.best_map = None
-        self.best_recall = None
+        self.best_map = 0
+        self.best_recall = 0
 
         self.training_start_time = int(round(time.time()))
 
@@ -98,16 +96,16 @@ class Aggregator(object):
                            for i in range(len(client_sizes)))
         return aggr_loss, aggr_maps, aggr_recalls
 
-    # cur_round coule be None
-    def aggregate_train_loss_accuracy_recall(self, client_losses, client_maps, client_recalls, client_sizes, cur_round):
+    # cur_round could None
+    def aggregate_train_loss_accuracy_recall(self, client_losses, client_sizes, cur_round):
         cur_time = int(round(time.time())) - self.training_start_time
-        aggr_loss, aggr_map, aggr_recall = self.aggregate_loss_map_recall(client_losses, client_maps, client_recalls,
-                                                                          client_sizes)
-
+        total_size = sum(client_sizes)
+        # weighted sum
+        aggr_loss = sum(client_losses[i] / total_size * client_sizes[i]
+                        for i in range(len(client_sizes)))
         self.train_losses += [[cur_round, cur_time, aggr_loss]]
-        # with open('stats.txt', 'w') as outfile:
-        #     json.dump(self.get_stats(), outfile)
-        return aggr_loss, aggr_map, aggr_recall
+        print(aggr_loss)
+        return aggr_loss
 
     # cur_round coule be None
     def aggregate_loss_accuracy_recall(self, client_losses, client_maps, client_recalls, client_sizes, cur_round):
@@ -118,8 +116,6 @@ class Aggregator(object):
         self.avg_test_losses += [[cur_round, cur_time, aggr_loss]]
         self.avg_test_maps += [[cur_round, cur_time, aggr_map]]
         self.avg_test_recalls += [[cur_round, cur_time, aggr_recall]]
-        # with open('stats.txt', 'w') as outfile:
-        #     json.dump(self.get_stats(), outfile)
         return aggr_loss, aggr_map, aggr_recall
 
     def get_stats(self):
@@ -160,7 +156,7 @@ class FLServer(object):
         self.STOP = False
 
         self.wait_time = 0
-
+        logger.info(self.task_config)
         self.model_id = str(uuid.uuid4())
 
         self.aggregator = Aggregator(self.task_config)
@@ -259,18 +255,16 @@ class FLServer(object):
                         [x['weights'] for x in self.current_round_client_updates],
                         [x['train_size'] for x in self.current_round_client_updates]
                     )
-
-                    aggr_train_loss, aggr_train_map, aggr_train_recall = self.aggregator.aggregate_train_loss_accuracy_recall(
+                    print(self.current_round)
+                    print([x['train_loss'] for x in self.current_round_client_updates])
+                    print([x['train_size'] for x in self.current_round_client_updates])
+                    aggr_train_loss = self.aggregator.aggregate_train_loss_accuracy_recall(
                         [x['train_loss'] for x in self.current_round_client_updates],
-                        [x['train_map'] for x in self.current_round_client_updates],
-                        [x['train_recall'] for x in self.current_round_client_updates],
                         [x['train_size'] for x in self.current_round_client_updates],
                         self.current_round
                     )
                     logger.info("=== training ===")
                     logger.info("aggr_train_loss {}".format(aggr_train_loss))
-                    logger.info("aggr_train_map {}".format(aggr_train_map))
-                    logger.info("aggr_train_recall {}".format(aggr_train_recall))
 
                     if 'client_test_loss' in self.current_round_client_updates[0]:
                         aggr_test_loss, aggr_test_map, aggr_test_recall = self.aggregator.aggregate_loss_accuracy_recall(
@@ -285,12 +279,12 @@ class FLServer(object):
                         logger.info("aggr_test_map {}".format(aggr_test_map))
                         logger.info("aggr_test_recall {}".format(aggr_test_recall))
 
-                        if self.aggregator.best_loss is None or (self.aggregator.best_loss > aggr_test_loss):
-                            self.aggregator.best_loss = aggr_test_loss
-                            self.aggregator.best_weight = self.aggregator.current_weights
-                            self.aggregator.best_round = self.current_round
-                            print('current:' + str(self.current_round))
-                            print('best:' + str(self.aggregator.best_round))
+#                        if self.aggregator.best_loss is None or (self.aggregator.best_loss > aggr_test_loss):
+#                            self.aggregator.best_loss = aggr_test_loss
+#                            self.aggregator.best_weight = self.aggregator.current_weights
+#                            self.aggregator.best_round = self.current_round
+#                            print('current:' + str(self.current_round))
+#                            print('best:' + str(self.aggregator.best_round))
 
                         if self.aggregator.prev_test_loss is not None and self.aggregator.prev_test_loss < aggr_test_loss:
                             self.invalid_tolerate = self.invalid_tolerate + 1
@@ -328,11 +322,11 @@ class FLServer(object):
                 logger.info("server_test_map {}".format(server_test_map))
                 logger.info("server_test_recall {}".format(server_test_recall))
 
-                if self.aggregator.best_round == self.current_round:
+                if self.aggregator.best_map <= server_test_map:
                     self.aggregator.best_map = server_test_map
                     self.aggregator.best_loss = server_test_loss
                     self.aggregator.best_recall = server_test_recall
-
+                    self.aggregator.best_round = self.current_round
                 if self.STOP:
                     logger.info("== done ==")
                     self.eval_client_updates = None  # special value, forbid evaling again
@@ -373,14 +367,14 @@ class FLServer(object):
                     'round_number': self.current_round,
                     'current_weights': current_weights,
                     'model_path': self.aggregator.model_path,
-                    'aggregation': self.current_round % self.ROUNDS_BETWEEN_VALIDATIONS == 0,
+               #     'aggregation': self.current_round % self.ROUNDS_BETWEEN_VALIDATIONS == 0,
                 }, room=rid)
                 logger.info("sent initial model to client")
             else:
                 emit('request_update', {
                     'model_id': self.model_id,
                     'round_number': self.current_round,
-                    'aggregation': self.current_round % self.ROUNDS_BETWEEN_VALIDATIONS == 0,
+                #    'aggregation': self.current_round % self.ROUNDS_BETWEEN_VALIDATIONS == 0,
                 }, room=rid)
 
     def stop_and_eval(self):

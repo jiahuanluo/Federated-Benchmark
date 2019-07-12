@@ -41,10 +41,13 @@ class LocalModel(object):
         self.model.set_weights(new_weights)
 
     def train_one_round(self):
+        losses = []
         for i in range(1, self.epoch + 1):
             loss = self.model.train_one_epoch()
-        total_loss, mAP, recall = self.model.eval(self.model.dataloader, self.model.yolo, test_num=1000)
-        return self.model.get_weights(), total_loss, mAP, recall
+            losses.append(loss)
+        # total_loss, mAP, recall = self.model.eval(self.model.dataloader, self.model.yolo, test_num=1000)
+        #return self.model.get_weights(), total_loss, mAP, recall
+        return self.model.get_weights(), sum(losses) / len(losses)
 
     def evaluate(self):
         loss, acc, recall = self.model.evaluate()
@@ -134,29 +137,28 @@ class FederatedClient(object):
                 weights = pickle_string_to_obj(req['current_weights'])
                 self.local_model.set_weights(weights)
 
-            my_weights, train_loss, train_map, train_recall = \
-                self.local_model.train_one_round()
-            print(train_loss, train_map, train_recall)
-            train_map = np.nan_to_num(train_map)
-            train_recall = np.nan_to_num(train_recall)
-            # print("sending weights:", my_weights)
+            # my_weights, train_loss, train_map, train_recall = \
+              #  self.local_model.train_one_round()
+            my_weights, train_loss = self.local_model.train_one_round()
+            print(train_loss)
+            # train_map = np.nan_to_num(train_map)
+            # train_recall = np.nan_to_num(train_recall)
 
             pickle_string_weights = obj_to_pickle_string(my_weights)
             resp = {
                 'round_number': cur_round,
                 'weights': pickle_string_weights,
                 'train_size': self.local_model.model.train_size,
-                'train_loss': train_loss,
-                'train_map': train_map,
-                'train_recall': train_recall
+                'train_loss': train_loss
+              #  'train_map': train_map,
+               # 'train_recall': train_recall
             }
-            print("Emit client_update")
 
             self.logger.info("client_train_loss {}".format(train_loss))
-            self.logger.info("client_train_map {}".format(train_map))
-            self.logger.info("client_train_recall {}".format(train_recall))
+            #self.logger.info("client_train_map {}".format(train_map))
+            #self.logger.info("client_train_recall {}".format(train_recall))
 
-            if req['aggregation']:
+            if 'aggregation' in req and req['aggregation']:
                 client_test_loss, client_test_map, client_test_recall = self.local_model.evaluate()
                 client_test_map = np.nan_to_num(client_test_map)
                 client_test_recall = np.nan_to_num(client_test_recall)
@@ -168,6 +170,7 @@ class FederatedClient(object):
                 self.logger.info("client_test_map {}".format(client_test_map))
                 self.logger.info("client_test_recall {}".format(client_test_recall))
 
+            print("Emit client_update")
             self.sio.emit('client_update', resp)
             self.logger.info("sent trained model to server")
             print("Emited...")
