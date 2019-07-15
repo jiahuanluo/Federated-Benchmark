@@ -15,4 +15,4 @@ backup
 weights/*.74
 __pycache__
 checkpoints
-experiments/logs
+experiments/*.log
