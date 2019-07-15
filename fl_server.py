@@ -12,14 +12,18 @@ from flask import *
 from flask_socketio import *
 from flask_socketio import SocketIO
 import logging
+import argparse
+from model_wrapper import Models
 
 logging.getLogger('engineio').setLevel(logging.ERROR)
 logging.getLogger('werkzeug').setLevel(logging.ERROR)
+datestr = time.strftime('%m%d')
 timestr = time.strftime('%m%d%H%M')
 logger = logging.getLogger("aggregation")
-
-fh = logging.FileHandler('experiments/logs/{}.log'.format(timestr))
-# fh = logging.StreamHandler()
+log_dir = os.path.join('experiments', 'logs', datestr)
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir)
+fh = logging.FileHandler(os.path.join(log_dir, '{}.log'.format(timestr)))
 fh.setLevel(logging.INFO)
 # create console handler with a higher log level
 ch = logging.StreamHandler()
@@ -31,8 +35,6 @@ ch.setFormatter(formatter)
 # add the handlers to the logger
 logger.addHandler(fh)
 logger.addHandler(ch)
-
-from model_wrapper import Models
 
 
 def load_json(filename):
@@ -104,7 +106,6 @@ class Aggregator(object):
         aggr_loss = sum(client_losses[i] / total_size * client_sizes[i]
                         for i in range(len(client_sizes)))
         self.train_losses += [[cur_round, cur_time, aggr_loss]]
-        print(aggr_loss)
         return aggr_loss
 
     # cur_round coule be None
@@ -255,9 +256,6 @@ class FLServer(object):
                         [x['weights'] for x in self.current_round_client_updates],
                         [x['train_size'] for x in self.current_round_client_updates]
                     )
-                    print(self.current_round)
-                    print([x['train_loss'] for x in self.current_round_client_updates])
-                    print([x['train_size'] for x in self.current_round_client_updates])
                     aggr_train_loss = self.aggregator.aggregate_train_loss_accuracy_recall(
                         [x['train_loss'] for x in self.current_round_client_updates],
                         [x['train_size'] for x in self.current_round_client_updates],
@@ -422,20 +420,16 @@ def pickle_string_to_obj(s):
 
 
 if __name__ == '__main__':
-    # print(sys.argv)
-
-    try:
-        task_config_filename = sys.argv[1]
-        if not os.path.exists(task_config_filename):
-            print(task_config_filename, "doesn't exists")
-            raise FileNotFoundError()
-    except:
-        print("please input the task_config_filename")
-        exit(0)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config_file", type=str, required=True, help="task config file")
+    parser.add_argument("--port", type=int, required=True, help="server port")
+    opt = parser.parse_args()
+    print(opt)
+    if not os.path.exists(opt.config_file):
+        raise FileNotFoundError("{} dose not exist".format(opt.config_file))
     try:
         server = FLServer(task_config_filename, "127.0.0.1", 5000)
-        # server = FLServer(RESNET_MODEL, "127.0.0.1", 5000)
-        print("listening on 127.0.0.1:5000")
+        print("listening on 127.0.0.1:{}".format(str(opt.port)))
         server.start()
     except ConnectionError:
         print('Restart server fail.')

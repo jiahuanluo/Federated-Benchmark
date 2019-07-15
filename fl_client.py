@@ -1,21 +1,19 @@
 import numpy as np
 import random
-
-random.seed(2018)
-
 import time
 import json
 from model_wrapper import Models
 from socketIO_client import SocketIO
-from fl_server import obj_to_pickle_string, pickle_string_to_obj
+from fl_server import obj_to_pickle_string, pickle_string_to_obj, log_dir
 
 import sys
 import os
 
 import logging
+import argparse
 
-
-# logging.getLogger('socketIO-client').setLevel(logging.WARNING)
+logging.getLogger('socketIO-client').setLevel(logging.WARNING)
+random.seed(2018)
 
 
 def load_json(filename):
@@ -75,7 +73,7 @@ class FederatedClient(object):
         self.log_filename = self.task_config['log_filename']
         # logger
         self.logger = logging.getLogger("client")
-        self.fh = logging.FileHandler(self.log_filename)
+        self.fh = logging.FileHandler(os.path.join(log_dir, self.log_filename))
         self.fh.setLevel(logging.INFO)
         # create console handler with a higher log level
         self.ch = logging.StreamHandler()
@@ -87,6 +85,7 @@ class FederatedClient(object):
         # add the handlers to the logger
         self.logger.addHandler(self.fh)
         self.logger.addHandler(self.ch)
+        self.logger.info(self.task_config)
         self.sio = SocketIO(server_host, server_port, None, {'timeout': 36000})
         self.register_handles()
         print("sent wakeup")
@@ -258,19 +257,17 @@ class FederatedClient(object):
 
 
 if __name__ == "__main__":
-    print(sys.argv)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--gpu", type=int, required=True, help="which GPU to run")
+    parser.add_argument("--config_file", type=str, required=True, help="task config file")
+    parser.add_argument("--ignore_load", default=True, help="wheter ignore load of not")
+    parser.add_argument("--port", type=int, required=True, help="server port")
+    opt = parser.parse_args()
+    print(opt)
+    if not os.path.exists(opt.config_file):
+        raise FileNotFoundError('{} does not exist'.format(opt.config_file))
+    print("client run on {}".format(opt.gpu))
     try:
-        gpu = int(sys.argv[1])
-        task_config_filename = sys.argv[2]
-        if not os.path.exists(task_config_filename):
-            print(task_config_filename, "doesn't exists")
-            raise FileNotFoundError()
-        ignore_load = eval(sys.argv[3])
-        print("client run on {}".format(gpu))
-    except:
-        print("please input gpu, data_path, and <True/False| ignore loadavg>")
-        exit(0)
-    try:
-        FederatedClient("127.0.0.1", 5000, task_config_filename, gpu, ignore_load)
+        FederatedClient("127.0.0.1", opt.port, task_config_filename, gpu, ignore_load)
     except ConnectionError:
         print('The server is down. Try again later.')
