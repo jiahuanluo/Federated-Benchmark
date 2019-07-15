@@ -73,7 +73,7 @@ class FederatedClient(object):
         self.log_filename = self.task_config['log_filename']
         # logger
         self.logger = logging.getLogger("client")
-        self.fh = logging.FileHandler(os.path.join(log_dir, self.log_filename))
+        self.fh = logging.FileHandler(os.path.join(log_dir, os.path.basename(self.log_filename)))
         self.fh.setLevel(logging.INFO)
         # create console handler with a higher log level
         self.ch = logging.StreamHandler()
@@ -268,6 +268,6 @@ if __name__ == "__main__":
         raise FileNotFoundError('{} does not exist'.format(opt.config_file))
     print("client run on {}".format(opt.gpu))
     try:
-        FederatedClient("127.0.0.1", opt.port, task_config_filename, gpu, ignore_load)
+        FederatedClient("127.0.0.1", opt.port, opt.config_file, opt.gpu, opt.ignore_load)
     except ConnectionError:
         print('The server is down. Try again later.')

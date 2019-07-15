@@ -424,11 +424,11 @@ if __name__ == '__main__':
     parser.add_argument("--config_file", type=str, required=True, help="task config file")
     parser.add_argument("--port", type=int, required=True, help="server port")
     opt = parser.parse_args()
-    print(opt)
+    logger.info(opt)
     if not os.path.exists(opt.config_file):
         raise FileNotFoundError("{} dose not exist".format(opt.config_file))
     try:
-        server = FLServer(task_config_filename, "127.0.0.1", 5000)
+        server = FLServer(opt.config_file, "127.0.0.1", opt.port)
         print("listening on 127.0.0.1:{}".format(str(opt.port)))
         server.start()
     except ConnectionError:
