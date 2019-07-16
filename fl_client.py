@@ -4,9 +4,8 @@ import time
 import json
 from model_wrapper import Models
 from socketIO_client import SocketIO
-from fl_server import obj_to_pickle_string, pickle_string_to_obj, log_dir
+from utils.model_dump import *
 
-import sys
 import os
 
 import logging
@@ -14,6 +13,10 @@ import argparse
 
 logging.getLogger('socketIO-client').setLevel(logging.WARNING)
 random.seed(2018)
+datestr = time.strftime('%m%d')
+log_dir = os.path.join('experiments', 'logs', datestr)
+if not os.path.exists(log_dir):
+    raise FileNotFoundError("{} not found".format(log_dir))
 
 
 def load_json(filename):

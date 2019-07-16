@@ -1,9 +1,5 @@
-import codecs
 import json
-import os
-import pickle
 import random
-import sys
 import time
 import uuid
 import numpy as np
@@ -14,6 +10,7 @@ from flask_socketio import SocketIO
 import logging
 import argparse
 from model_wrapper import Models
+from utils.model_dump import *
 
 logging.getLogger('engineio').setLevel(logging.ERROR)
 logging.getLogger('werkzeug').setLevel(logging.ERROR)
@@ -277,13 +274,6 @@ class FLServer(object):
                         logger.info("aggr_test_map {}".format(aggr_test_map))
                         logger.info("aggr_test_recall {}".format(aggr_test_recall))
 
-#                        if self.aggregator.best_loss is None or (self.aggregator.best_loss > aggr_test_loss):
-#                            self.aggregator.best_loss = aggr_test_loss
-#                            self.aggregator.best_weight = self.aggregator.current_weights
-#                            self.aggregator.best_round = self.current_round
-#                            print('current:' + str(self.current_round))
-#                            print('best:' + str(self.aggregator.best_round))
-
                         if self.aggregator.prev_test_loss is not None and self.aggregator.prev_test_loss < aggr_test_loss:
                             self.invalid_tolerate = self.invalid_tolerate + 1
                         else:
@@ -291,7 +281,7 @@ class FLServer(object):
 
                         self.aggregator.prev_test_loss = aggr_test_loss
 
-                        if self.NUM_TOLERATE > 0 and self.invalid_tolerate > self.NUM_TOLERATE:
+                        if self.invalid_tolerate > self.NUM_TOLERATE > 0:
                             logger.info("converges! starting test phase..")
                             self.STOP = True
 
@@ -365,20 +355,19 @@ class FLServer(object):
                     'round_number': self.current_round,
                     'current_weights': current_weights,
                     'model_path': self.aggregator.model_path,
-               #     'aggregation': self.current_round % self.ROUNDS_BETWEEN_VALIDATIONS == 0,
+                    #     'aggregation': self.current_round % self.ROUNDS_BETWEEN_VALIDATIONS == 0,
                 }, room=rid)
                 logger.info("sent initial model to client")
             else:
                 emit('request_update', {
                     'model_id': self.model_id,
                     'round_number': self.current_round,
-                #    'aggregation': self.current_round % self.ROUNDS_BETWEEN_VALIDATIONS == 0,
+                    #    'aggregation': self.current_round % self.ROUNDS_BETWEEN_VALIDATIONS == 0,
                 }, room=rid)
 
     def stop_and_eval(self):
         current_weights = obj_to_pickle_string(self.aggregator.current_weights, self.aggregator.model_path)
         self.eval_client_updates = []
-        start = time.time()
         for rid in self.ready_client_sids:
             emit('stop_and_eval', {
                 'model_id': self.model_id,
@@ -390,33 +379,6 @@ class FLServer(object):
 
     def start(self):
         self.socketio.run(self.app, host=self.host, port=self.port)
-
-
-def obj_to_pickle_string(x, file_path=None):
-    if file_path is not None:
-        print("save model to file")
-        output = open(file_path, 'wb')
-        pickle.dump(x, output)
-        return file_path
-    else:
-        print("turn model to byte")
-        #x = pickle.dumps(x)
-        x=codecs.encode(pickle.dumps(x), "base64").decode()
-        print(len(x))
-        return x
-    # return msgpack.packb(x, default=msgpack_numpy.encode)
-    # TODO: compare pickle vs msgpack vs json for serialization; tradeoff: computation vs network IO
-
-
-def pickle_string_to_obj(s):
-    if ".pkl" in s:
-        df = open(s, "rb")
-        print("load model from file")
-        return pickle.load(df)
-    else:
-        print("load model from byte")
-        return pickle.loads(codecs.decode(s.encode(), "base64"))
-        #return pickle.loads(s)
 
 
 if __name__ == '__main__':
