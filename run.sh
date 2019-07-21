@@ -7,22 +7,22 @@ NUM_CLIENT=$2
 MODEL=$3
 PORT=$4
 
-if ( ! -n "$DATASET" );then
+if [ ! -n "$DATASET" ];then
 	echo "Please input dataset"
 	exit
 fi
 
-if ( ! -n "$NUM_CLIENT" );then
+if [ ! -n "$NUM_CLIENT" ];then
 	echo "Please input num of client"
 	exit
 fi
 
-if ( ! -n "$MODEL" );then
+if [ ! -n "$MODEL" ];then
 	echo "please input model name"
 	exit
 fi
 
-if ( ! -n "$PORT" );then
+if [ ! -n "$PORT" ];then
 	echo "please input server port"
 	exit
 fi

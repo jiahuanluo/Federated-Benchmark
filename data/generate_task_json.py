@@ -1,12 +1,11 @@
 import os
 import json
 import xml.etree.ElementTree as ET
-import pickle
-from os import listdir, getcwd
 
 sets = [('2007', 'train'), ('2007', 'test')]
 classes = ["basket", "carton", "chair", "electrombile", "gastank", "sunshade", "table"]
 dataset = "street_20"
+model = "faster"
 
 
 def convert(size, box):
@@ -45,27 +44,58 @@ def convert_annotation(anno_path, label_path, image_id):
         out_file.write(str(cls_id) + " " + " ".join([str(a) for a in bb]) + '\n')
 
 
-model = "yolo"
-if model == "fasterrcnn":
-    for i in range(1, 21):
+if model == "faster":
+    server_task_file = os.path.join("task_configs", model, dataset, model + "_task.json")
+    os.makedirs(os.path.dirname(server_task_file), exist_ok=True)
+    server_task_config = dict()
+    server_task_config["model_name"] = "FasterRCNN"
+    server_task_config["model_config_file"] = os.path.join("data", "task_configs", model, dataset,
+                                                           "faster_rcnn_model.json")
+    server_task_config["log_filename"] = "FL_server_log"
+    server_task_config["data_path"] = "data/Street_voc/total"
+    server_task_config["model_path"] = "faster_model.pkl"
+    server_task_config["MIN_NUM_WORKERS"] = 1
+    server_task_config["MAX_NUM_ROUNDS"] = 1000
+    server_task_config["NUM_TOLERATE"] = -1
+    server_task_config["NUM_CLIENTS_CONTACTED_PER_ROUND"] = 1
+    server_task_config["ROUNDS_BETWEEN_VALIDATIONS"] = 1000
+    with open(server_task_file, "w") as f:
+        json.dump(server_task_config, f)
+
+    for i in range(1, int(dataset.split('_')[-1]) + 1):
         dir_path = os.path.join(str(i), "ImageSets", "Main", "train.txt")
         train_size = len(open(dir_path).readlines())
         task_file_path = os.path.join("task_configs", "faster_rcnn_task" + str(i) + ".json")
         task_config = dict()
         task_config["model_name"] = "FasterRCNN"
-        task_config["model_config_file"] = "data/task_configs/street_20/faster_rcnn_model.json"
-        task_config["log_filename"] = "logs/street_20/FL_street" + str(i) + "_log"
-        task_config["data_path"] = "../object_detection/street_20/" + str(i)
-        task_config["epoch"] = 5
-        task_config["train_size"] = train_size
-        task_config["test_size"] = 191
+        task_config["model_config_file"] = os.path.join("data", "task_configs", model, dataset,
+                                                        "faster_rcnn_model.json")
+        task_config["log_filename"] = "FL_street" + str(i) + "_log"
+        task_config["data_path"] = "data/street_20/" + str(i)
+        task_config["local_epoch"] = 5
 
         with open(task_file_path, "w") as f:
             json.dump(task_config, f)
 
 
 elif model == "yolo":
-    for i in range(1, 21):
+    server_task_file = os.path.join("task_configs", model, dataset, model + "_task.json")
+
+    os.makedirs(os.path.dirname(server_task_file))
+    server_task_config = dict()
+    server_task_config["model_name"] = "Yolo"
+    server_task_config["model_config_file"] = os.path.join("data", "task_configs", model, dataset, "yolo_model.json")
+    server_task_config["log_filename"] = "FL_server_log"
+    server_task_config["model_path"] = "yolo_model.pkl"
+    server_task_config["MIN_NUM_WORKERS"] = 1
+    server_task_config["MAX_NUM_ROUNDS"] = 1000
+    server_task_config["NUM_TOLERATE"] = -1
+    server_task_config["NUM_CLIENTS_CONTACTED_PER_ROUND"] = 1
+    server_task_config["ROUNDS_BETWEEN_VALIDATIONS"] = 1000
+    with open(server_task_file, "w") as f:
+        json.dump(server_task_config, f)
+
+    for i in range(1, int(dataset.split('_')[-1]) + 1):
         label_path = os.path.join(dataset, str(i), "labels")
         if not os.path.exists(label_path):
             os.mkdir(label_path)
@@ -82,7 +112,7 @@ elif model == "yolo":
         task_config = dict()
         task_config["model_name"] = "Yolo"
         task_config["model_config"] = "data/task_configs/{}/yolo_model.json".format(dataset)
-        task_config["log_filename"] = "logs/{}/FL_street{}_log".format(dataset, str(i))
+        task_config["log_filename"] = "FL_street{}_log".format(dataset, str(i))
         task_config["train"] = "data/{}/{}/train.txt".format(dataset, str(i))
         task_config["test"] = "data/{}/{}/test.txt".format(dataset, str(i))
         task_config["names"] = "data/{}/classes.names".format(dataset)

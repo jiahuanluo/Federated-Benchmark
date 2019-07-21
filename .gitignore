@@ -6,6 +6,7 @@ build
 .git
 *.egg-info
 *.pkl
+*.log
 dist
 output
 data/coco
@@ -16,3 +17,4 @@ weights/*.74
 __pycache__
 checkpoints
 experiments/*.log
+experiments/*.csv
