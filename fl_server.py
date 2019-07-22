@@ -13,26 +13,10 @@ import argparse
 from model_wrapper import Models
 from utils.model_dump import *
 
-logging.getLogger('engineio').setLevel(logging.ERROR)
-logging.getLogger('werkzeug').setLevel(logging.ERROR)
+
 datestr = time.strftime('%m%d')
 timestr = time.strftime('%m%d%H%M')
-logger = logging.getLogger("aggregation")
-log_dir = os.path.join('experiments', 'logs', datestr)
-if not os.path.exists(log_dir):
-    os.makedirs(log_dir)
-fh = logging.FileHandler(os.path.join(log_dir, '{}.log'.format(timestr)))
-fh.setLevel(logging.INFO)
-# create console handler with a higher log level
-ch = logging.StreamHandler()
-ch.setLevel(logging.ERROR)
-# create formatter and add it to the handlers
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-fh.setFormatter(formatter)
-ch.setFormatter(formatter)
-# add the handlers to the logger
-logger.addHandler(fh)
-logger.addHandler(ch)
+
 
 
 def load_json(filename):
@@ -43,14 +27,14 @@ def load_json(filename):
 class Aggregator(object):
     """docstring for GlobalModel"""
 
-    def __init__(self, task_config):
+    def __init__(self, task_config, logger):
         self.task_config = task_config
         self.model_name = task_config['model_name']
         self.current_weights = self.get_init_parameters()
         self.model_path = task_config['model_path']
         # weights should be a ordered list of parameter
-
-        logger.info(self.get_model_description())
+        self.logger = logger
+        self.logger.info(self.get_model_description())
 
         # for stats
         self.train_losses = []
@@ -71,7 +55,7 @@ class Aggregator(object):
     def get_init_parameters(self):
         model = getattr(Models, self.model_name)
         parameters = model(self.task_config).get_weights()
-        logger.info("parameters loaded ... delete the model")
+        self.logger.info("parameters loaded ... delete the model")
         del model
         return parameters
 
@@ -152,13 +136,29 @@ class FLServer(object):
         self.NUM_CLIENTS_CONTACTED_PER_ROUND = self.task_config["NUM_CLIENTS_CONTACTED_PER_ROUND"]
         self.ROUNDS_BETWEEN_VALIDATIONS = self.task_config["ROUNDS_BETWEEN_VALIDATIONS"]
 
+        self.logger = logging.getLogger("aggregation")
+        log_dir = os.path.join('experiments', 'logs', datestr, self.task_config['log_dir'])
+        os.makedirs(log_dir, exist_ok=True)
+        fh = logging.FileHandler(os.path.join(log_dir, '{}.log'.format(timestr)))
+        fh.setLevel(logging.INFO)
+        # create console handler with a higher log level
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.ERROR)
+        # create formatter and add it to the handlers
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        fh.setFormatter(formatter)
+        ch.setFormatter(formatter)
+        # add the handlers to the logger
+        self.logger.addHandler(fh)
+        self.logger.addHandler(ch)
+
         self.STOP = False
 
         self.wait_time = 0
-        logger.info(self.task_config)
+        self.logger.info(self.task_config)
         self.model_id = str(uuid.uuid4())
 
-        self.aggregator = Aggregator(self.task_config)
+        self.aggregator = Aggregator(self.task_config, self.logger)
 
         #####
         # training states
@@ -241,8 +241,8 @@ class FLServer(object):
 
         @self.socketio.on('client_update')
         def handle_client_update(data):
-            logger.info("received client update of bytes: {}".format(sys.getsizeof(data)))
-            logger.info("handle client_update {}".format(request.sid))
+            self.logger.info("received client update of bytes: {}".format(sys.getsizeof(data)))
+            self.logger.info("handle client_update {}".format(request.sid))
 
             if data['round_number'] == self.current_round:
                 self.current_round_client_updates += [data]
@@ -259,8 +259,8 @@ class FLServer(object):
                         [x['train_size'] for x in self.current_round_client_updates],
                         self.current_round
                     )
-                    logger.info("=== training ===")
-                    logger.info("aggr_train_loss {}".format(aggr_train_loss))
+                    self.logger.info("=== training ===")
+                    self.logger.info("aggr_train_loss {}".format(aggr_train_loss))
 
                     if 'client_test_loss' in self.current_round_client_updates[0]:
                         aggr_test_loss, aggr_test_map, aggr_test_recall = self.aggregator.aggregate_loss_accuracy_recall(
@@ -270,10 +270,10 @@ class FLServer(object):
                             [x['client_test_size'] for x in self.current_round_client_updates],
                             self.current_round
                         )
-                        logger.info("=== aggregation ===")
-                        logger.info("aggr_test_loss {}".format(aggr_test_loss))
-                        logger.info("aggr_test_map {}".format(aggr_test_map))
-                        logger.info("aggr_test_recall {}".format(aggr_test_recall))
+                        self.logger.info("=== aggregation ===")
+                        self.logger.info("aggr_test_loss {}".format(aggr_test_loss))
+                        self.logger.info("aggr_test_map {}".format(aggr_test_map))
+                        self.logger.info("aggr_test_recall {}".format(aggr_test_recall))
 
                         if self.aggregator.prev_test_loss is not None and self.aggregator.prev_test_loss < aggr_test_loss:
                             self.invalid_tolerate = self.invalid_tolerate + 1
@@ -283,11 +283,11 @@ class FLServer(object):
                         self.aggregator.prev_test_loss = aggr_test_loss
 
                         if self.invalid_tolerate > self.NUM_TOLERATE > 0:
-                            logger.info("converges! starting test phase..")
+                            self.logger.info("converges! starting test phase..")
                             self.STOP = True
 
                     if self.current_round >= self.MAX_NUM_ROUNDS:
-                        logger.info("get to maximum step, stop...")
+                        self.logger.info("get to maximum step, stop...")
                         self.STOP = True
 
                     self.stop_and_eval()
@@ -296,8 +296,8 @@ class FLServer(object):
         def handle_client_eval(data):
             if self.eval_client_updates is None:
                 return
-            logger.info("handle client_eval {}".format(request.sid))
-            # logger.info("eval_resp {}".format(data))
+            self.logger.info("handle client_eval {}".format(request.sid))
+            # self.logger.info("eval_resp {}".format(data))
             self.eval_client_updates += [data]
 
             # tolerate 30% unresponsive clients
@@ -306,10 +306,10 @@ class FLServer(object):
                 server_test_loss = self.eval_client_updates[0]['test_loss']
                 server_test_map = self.eval_client_updates[0]['test_map']
                 server_test_recall = self.eval_client_updates[0]['test_recall']
-                logger.info("=== server test ===")
-                logger.info("server_test_loss {}".format(server_test_loss))
-                logger.info("server_test_map {}".format(server_test_map))
-                logger.info("server_test_recall {}".format(server_test_recall))
+                self.logger.info("=== server test ===")
+                self.logger.info("server_test_loss {}".format(server_test_loss))
+                self.logger.info("server_test_map {}".format(server_test_map))
+                self.logger.info("server_test_recall {}".format(server_test_recall))
 
                 if self.aggregator.best_map <= server_test_map:
                     self.aggregator.best_map = server_test_map
@@ -317,15 +317,15 @@ class FLServer(object):
                     self.aggregator.best_recall = server_test_recall
                     self.aggregator.best_round = self.current_round
                 if self.STOP:
-                    logger.info("== done ==")
+                    self.logger.info("== done ==")
                     self.eval_client_updates = None  # special value, forbid evaling again
-                    logger.info("Federated training finished ... ")
-                    logger.info("best model at round {}".format(self.aggregator.best_round))
-                    logger.info("get best test loss {}".format(self.aggregator.best_loss))
-                    logger.info("get best map {}".format(self.aggregator.best_map))
-                    logger.info("get best recall {}".format(self.aggregator.best_recall))
+                    self.logger.info("Federated training finished ... ")
+                    self.logger.info("best model at round {}".format(self.aggregator.best_round))
+                    self.logger.info("get best test loss {}".format(self.aggregator.best_loss))
+                    self.logger.info("get best map {}".format(self.aggregator.best_map))
+                    self.logger.info("get best recall {}".format(self.aggregator.best_recall))
                 else:
-                    logger.info("start to next round...")
+                    self.logger.info("start to next round...")
                     self.check_client_resource()
 
     def check_client_resource(self):
@@ -344,9 +344,9 @@ class FLServer(object):
         # buffers all client updates
         self.current_round_client_updates = []
 
-        logger.info("### Round {} ###".format(self.current_round))
+        self.logger.info("### Round {} ###".format(self.current_round))
 
-        logger.info("request updates from {}".format(client_sids_selected))
+        self.logger.info("request updates from {}".format(client_sids_selected))
         # by default each client cnn is in its own "room"
         current_weights = obj_to_pickle_string(self.aggregator.current_weights, self.aggregator.model_path)
         for rid in client_sids_selected:
@@ -358,7 +358,7 @@ class FLServer(object):
                     'model_path': self.aggregator.model_path,
                     #     'aggregation': self.current_round % self.ROUNDS_BETWEEN_VALIDATIONS == 0,
                 }, room=rid)
-                logger.info("sent initial model to client")
+                self.logger.info("sent initial model to client")
             else:
                 emit('request_update', {
                     'model_id': self.model_id,
@@ -376,7 +376,7 @@ class FLServer(object):
                 'weights_format': 'pickle',
                 'STOP': self.STOP
             }, room=rid)
-        logger.info("sent aggregated model to client")
+        self.logger.info("sent aggregated model to client")
 
     def start(self):
         self.socketio.run(self.app, host=self.host, port=self.port)
@@ -387,7 +387,7 @@ if __name__ == '__main__':
     parser.add_argument("--config_file", type=str, required=True, help="task config file")
     parser.add_argument("--port", type=int, required=True, help="server port")
     opt = parser.parse_args()
-    logger.info(opt)
+    print(opt)
     if not os.path.exists(opt.config_file):
         raise FileNotFoundError("{} dose not exist".format(opt.config_file))
     try:

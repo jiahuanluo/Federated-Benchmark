@@ -21,7 +21,12 @@ if [ ! -n "$PORT" ];then
         echo "please input server port"
         exit
 fi
-LOG="experiments/logs/`date +'%m-%d'`/fl_server.log"
+
+if [ ! -d "experiments/logs/`date +'%m%d'`/${MODEL}/${DATASET}" ];then
+	mkdir "experiments/logs/`date +'%m%d'`/${MODEL}/${DATASET}"
+fi
+
+LOG="experiments/logs/`date +'%m%d'`/${MODEL}/${DATASET}/fl_server.log"
 echo Loggin output to "$LOG"
 
-nohup python3 fl_server.py --config_file data/task_configs/${DATASET}/${MODEL}_task.json --port ${PORT} > ${LOG} &
+nohup python3 fl_server.py --config_file data/task_configs/${MODEL}/${DATASET}/${MODEL}_task.json --port ${PORT} > ${LOG} &
