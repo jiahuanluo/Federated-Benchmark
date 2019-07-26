@@ -13,10 +13,8 @@ import argparse
 from model_wrapper import Models
 from utils.model_dump import *
 
-
 datestr = time.strftime('%m%d')
 timestr = time.strftime('%m%d%H%M')
-
 
 
 def load_json(filename):
@@ -303,9 +301,12 @@ class FLServer(object):
             # tolerate 30% unresponsive clients
             if len(self.eval_client_updates) == self.NUM_CLIENTS_CONTACTED_PER_ROUND:
 
-                server_test_loss = self.eval_client_updates[0]['test_loss']
-                server_test_map = self.eval_client_updates[0]['test_map']
-                server_test_recall = self.eval_client_updates[0]['test_recall']
+                server_test_loss = sum([float(update['test_loss']) for update in self.eval_client_updates]) / len(
+                    self.eval_client_updates)
+                server_test_map = sum([float(update['test_map']) for update in self.eval_client_updates]) / len(
+                    self.eval_client_updates)
+                server_test_recall = sum([float(update['test_recall']) for update in self.eval_client_updates]) / len(
+                    self.eval_client_updates)
                 self.logger.info("=== server test ===")
                 self.logger.info("server_test_loss {}".format(server_test_loss))
                 self.logger.info("server_test_map {}".format(server_test_map))

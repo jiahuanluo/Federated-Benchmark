@@ -3,8 +3,9 @@ import json
 import xml.etree.ElementTree as ET
 
 sets = [('2007', 'train'), ('2007', 'test')]
-classes = ["basket", "carton", "chair", "electrombile", "gastank", "sunshade", "table"]
-dataset = "street_20"
+# classes = ["basket", "carton", "chair", "electrombile", "gastank", "sunshade", "table"]
+classes = ["garbage"]
+dataset = "river_16"
 model = "faster"
 
 
@@ -45,33 +46,43 @@ def convert_annotation(anno_path, label_path, image_id):
 
 
 if model == "faster":
-    server_task_file = os.path.join("task_configs", model, dataset, model + "_task.json")
+    num_client = int(dataset.split('_')[-1])
+    server_task_file = os.path.join("task_configs", model, dataset, "faster_task.json")
     os.makedirs(os.path.dirname(server_task_file), exist_ok=True)
     server_task_config = dict()
     server_task_config["model_name"] = "FasterRCNN"
-    server_task_config["model_config_file"] = os.path.join("data", "task_configs", model, dataset,
-                                                           "faster_rcnn_model.json")
-    server_task_config["log_filename"] = "FL_server_log"
+    server_task_config["model_config"] = os.path.join("data", "task_configs", model, dataset,
+                                                      "faster_model.json")
+    server_task_config["log_dir"] = "{}/{}".format(model, dataset)
     server_task_config["data_path"] = "data/Street_voc/total"
     server_task_config["model_path"] = "faster_model.pkl"
-    server_task_config["MIN_NUM_WORKERS"] = 1
+    server_task_config["MIN_NUM_WORKERS"] = num_client
     server_task_config["MAX_NUM_ROUNDS"] = 1000
     server_task_config["NUM_TOLERATE"] = -1
-    server_task_config["NUM_CLIENTS_CONTACTED_PER_ROUND"] = 1
+    server_task_config["NUM_CLIENTS_CONTACTED_PER_ROUND"] = num_client
     server_task_config["ROUNDS_BETWEEN_VALIDATIONS"] = 1000
     with open(server_task_file, "w") as f:
         json.dump(server_task_config, f)
 
+    model_config_file = os.path.join("task_configs", model, dataset, model + "_model.json")
+    model_config = dict()
+    model_config["model_name"] = "fasterrcnn-faccee"
+    model_config["env"] = "FasterRCNN"
+    model_config["plot_every"] = 100
+    model_config["batch_size"] = 1
+    model_config["label_names"] = classes
+    with open(model_config_file, 'w') as f:
+        json.dump(model_config, f)
+
     for i in range(1, int(dataset.split('_')[-1]) + 1):
         dir_path = os.path.join(str(i), "ImageSets", "Main", "train.txt")
-        train_size = len(open(dir_path).readlines())
-        task_file_path = os.path.join("task_configs", "faster_rcnn_task" + str(i) + ".json")
+        task_file_path = os.path.join("task_configs", model, dataset, "faster_task" + str(i) + ".json")
         task_config = dict()
         task_config["model_name"] = "FasterRCNN"
-        task_config["model_config_file"] = os.path.join("data", "task_configs", model, dataset,
-                                                        "faster_rcnn_model.json")
-        task_config["log_filename"] = "FL_street" + str(i) + "_log"
-        task_config["data_path"] = "data/street_20/" + str(i)
+        task_config["model_config"] = os.path.join("data", "task_configs", model, dataset,
+                                                   "faster_model.json")
+        task_config["log_filename"] = "{}/{}/FL_client_{}_log".format(model, dataset, str(i))
+        task_config["data_path"] = "data/{}/{}".format(dataset, str(i))
         task_config["local_epoch"] = 5
 
         with open(task_file_path, "w") as f:
@@ -80,21 +91,29 @@ if model == "faster":
 
 elif model == "yolo":
     server_task_file = os.path.join("task_configs", model, dataset, model + "_task.json")
-
-    os.makedirs(os.path.dirname(server_task_file))
+    os.makedirs(os.path.dirname(server_task_file), exist_ok=True)
     server_task_config = dict()
     server_task_config["model_name"] = "Yolo"
-    server_task_config["model_config_file"] = os.path.join("data", "task_configs", model, dataset, "yolo_model.json")
-    server_task_config["log_filename"] = "FL_server_log"
+    server_task_config["model_config"] = os.path.join("data", "task_configs", model, dataset, "yolo_model.json")
+    server_task_config["log_dir"] = "{}/{}".format(model, dataset)
     server_task_config["model_path"] = "yolo_model.pkl"
-    server_task_config["MIN_NUM_WORKERS"] = 1
+    server_task_config["MIN_NUM_WORKERS"] = 20
     server_task_config["MAX_NUM_ROUNDS"] = 1000
     server_task_config["NUM_TOLERATE"] = -1
-    server_task_config["NUM_CLIENTS_CONTACTED_PER_ROUND"] = 1
+    server_task_config["NUM_CLIENTS_CONTACTED_PER_ROUND"] = 20
     server_task_config["ROUNDS_BETWEEN_VALIDATIONS"] = 1000
     with open(server_task_file, "w") as f:
         json.dump(server_task_config, f)
 
+    model_config_file = os.path.join("task_configs", model, dataset, model + "_model.json")
+    model_config = dict()
+    model_config["model_def"] = "config/yolov3-custom-{}.cfg".format(dataset.split('_')[0])
+    model_config["pretrained_weights"] = "weights/darknet53.conv.74"
+    model_config["multiscale_training"] = True
+    model_config["gradient_accumulations"] = 2
+    model_config["img_size"] = 416
+    with open(model_config_file, 'w') as f:
+        json.dump(model_config, f)
     for i in range(1, int(dataset.split('_')[-1]) + 1):
         label_path = os.path.join(dataset, str(i), "labels")
         if not os.path.exists(label_path):
@@ -108,11 +127,11 @@ elif model == "yolo":
                 list_file.write('%s/%s/%s/JPEGImages/%s.jpg\n' % ("data", dataset, str(i), image_id))
                 convert_annotation(anno_path, label_path, image_id)
             list_file.close()
-        task_file_path = os.path.join("task_configs", dataset, "yolo_task" + str(i) + ".json")
+        task_file_path = os.path.join("task_configs", model, dataset, "yolo_task" + str(i) + ".json")
         task_config = dict()
         task_config["model_name"] = "Yolo"
-        task_config["model_config"] = "data/task_configs/{}/yolo_model.json".format(dataset)
-        task_config["log_filename"] = "FL_street{}_log".format(dataset, str(i))
+        task_config["model_config"] = "data/task_configs/{}/{}/yolo_model.json".format(model, dataset)
+        task_config["log_filename"] = "{}/{}/FL_client_{}_log".format(model, dataset, str(i))
         task_config["train"] = "data/{}/{}/train.txt".format(dataset, str(i))
         task_config["test"] = "data/{}/{}/test.txt".format(dataset, str(i))
         task_config["names"] = "data/{}/classes.names".format(dataset)

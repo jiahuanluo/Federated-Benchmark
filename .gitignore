@@ -18,3 +18,4 @@ __pycache__
 checkpoints
 experiments/*.log
 experiments/*.csv
+experiments/*.png
