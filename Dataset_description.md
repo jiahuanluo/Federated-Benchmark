@@ -1,3 +1,4 @@
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=default"></script>
 ## FedVision
 **FedVison dataset** is created jointly by WeBank and ExtremeVision to facilitate the advancement of academic research 
 and industrial applications of federated learning.
@@ -77,4 +78,4 @@ a river and each or every few of them serve as a device. The target of this data
    
 ### Evaluation
 We use he standard <u>[PASCAL VOC 2010](http://host.robots.ox.ac.uk/pascal/VOC/voc2010/devkit_doc_08-May-2010.pdf)</u> mead Average Precision (mAP) to evaluate (mean is taken over per-class APs).  
-To be considered a correct detection. the overlap ratio $$a$$
+To be considered a correct detection. the overlap ratio $$ a $$
