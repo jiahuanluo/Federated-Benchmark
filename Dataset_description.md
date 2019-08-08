@@ -1,4 +1,3 @@
-<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=default"></script>
 ## FedVision
 **FedVison dataset** is created jointly by WeBank and ExtremeVision to facilitate the advancement of academic research 
 and industrial applications of federated learning.
@@ -77,5 +76,12 @@ a river and each or every few of them serve as a device. The target of this data
     the `image_info` of test data does not have the key `device_id`.  
    
 ### Evaluation
-We use he standard <u>[PASCAL VOC 2010](http://host.robots.ox.ac.uk/pascal/VOC/voc2010/devkit_doc_08-May-2010.pdf)</u> mead Average Precision (mAP) to evaluate (mean is taken over per-class APs).  
-To be considered a correct detection. the overlap ratio $$ a $$
+We use he standard [PASCAL VOC 2010](http://host.robots.ox.ac.uk/pascal/VOC/voc2010/devkit_doc_08-May-2010.pdf) mean Average Precision (mAP) for evaluation (mean is taken over per-class APs).  
+To be considered a correct detection, the overlap ratio <a href="https://www.codecogs.com/eqnedit.php?latex=\dpi{100}&space;$$a_o$$" target="_blank"><img src="https://latex.codecogs.com/png.latex?\dpi{100}&space;$$a_o$$" title="$$a_o$$" /></a> between the predicted bounding box <a href="https://www.codecogs.com/eqnedit.php?latex=\dpi{100}&space;$$B_p$$" target="_blank"><img src="https://latex.codecogs.com/png.latex?\dpi{100}&space;$$B_p$$" title="$$B_p$$" /></a> and ground truth bounding box <a href="https://www.codecogs.com/eqnedit.php?latex=\dpi{80}&space;$$B_{g_t}$$" target="_blank"><img src="https://latex.codecogs.com/png.latex?\dpi{100}&space;$$B_{g_t}$$" title="$$B_{g_t}$$" /></a> by the formula  
+<a href="https://www.codecogs.com/eqnedit.php?latex=$$a_o=\frac{area(B_p&space;\cap&space;B_{g_t})}{area(B_p&space;\cup&space;B_{g_t})}$$" target="_blank"><img src="https://latex.codecogs.com/png.latex?$$a_o=\frac{area(B_p&space;\cap&space;B_{g_t})}{area(B_p&space;\cup&space;B_{g_t})}$$" title="$$a_o=\frac{area(B_p \cap B_{g_t})}{area(B_p \cup B_{g_t})}$$" /></a>  
+when <a href="https://www.codecogs.com/eqnedit.php?latex=\dpi{100}&space;$$B_p&space;\cap&space;B_{g_t}$$" target="_blank"><img src="https://latex.codecogs.com/png.latex?\dpi{100}&space;$$B_p&space;\cap&space;B_{g_t}$$" title="$$B_p \cap B_{g_t}$$" /></a> denotes the intersection of the predicted and ground truth bounding boxes and <a href="https://www.codecogs.com/eqnedit.php?latex=\dpi{100}&space;$$B_p&space;\cup&space;B_{g_t}$$" target="_blank"><img src="https://latex.codecogs.com/png.latex?\dpi{100}&space;$$B_p&space;\cup&space;B_{g_t}$$" title="$$B_p \cup B_{g_t}$$" /></a> their union.
+Average Precision is calculated for each class respectively.  
+<a href="https://www.codecogs.com/eqnedit.php?latex=$$AP=\frac{P}{n}$$" target="_blank"><img src="https://latex.codecogs.com/png.latex?$$AP=\frac{P}{n}$$" title="$$AP=\frac{P}{n}$$" /></a>  
+where n is the number of total object in given class.
+For $k$ classes, mAP is the average of APs.    
+<a href="https://www.codecogs.com/eqnedit.php?latex=$$mAP=\frac{\sum_{i=1}^{k}AP_i}{k}$$" target="_blank"><img src="https://latex.codecogs.com/png.latex?$$mAP=\frac{\sum_{i=1}^{k}AP_i}{k}$$" title="$$mAP=\frac{\sum_{i=1}^{k}AP_i}{k}$$" /></a>
