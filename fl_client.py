@@ -2,7 +2,7 @@ import numpy as np
 import random
 import time
 import json
-from model_wrapper import Models
+from model.model_wrapper import Models
 from socketIO_client import SocketIO
 from utils.model_dump import *
 
@@ -139,12 +139,8 @@ class FederatedClient(object):
                 weights = pickle_string_to_obj(req['current_weights'])
                 self.local_model.set_weights(weights)
 
-            # my_weights, train_loss, train_map, train_recall = \
-              #  self.local_model.train_one_round()
             my_weights, train_loss = self.local_model.train_one_round()
             print(train_loss)
-            # train_map = np.nan_to_num(train_map)
-            # train_recall = np.nan_to_num(train_recall)
 
             pickle_string_weights = obj_to_pickle_string(my_weights)
             resp = {
@@ -152,13 +148,9 @@ class FederatedClient(object):
                 'weights': pickle_string_weights,
                 'train_size': self.local_model.model.train_size,
                 'train_loss': train_loss
-              #  'train_map': train_map,
-               # 'train_recall': train_recall
             }
 
             self.logger.info("client_train_loss {}".format(train_loss))
-            #self.logger.info("client_train_map {}".format(train_map))
-            #self.logger.info("client_train_recall {}".format(train_recall))
 
             if 'aggregation' in req and req['aggregation']:
                 client_test_loss, client_test_map, client_test_recall = self.local_model.evaluate()

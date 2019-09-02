@@ -117,7 +117,7 @@ elif model == "yolo":
         label_path = os.path.join(dataset, str(i), "labels")
         if not os.path.exists(label_path):
             os.mkdir(label_path)
-        for year, image_set in sets:
+        for image_set in sets:
             anno_path = os.path.join(dataset, str(i), "Annotations")
             image_path = os.path.join(dataset, str(i), "ImageSets", "Main", image_set + ".txt")
             image_ids = open(image_path).read().strip().split()

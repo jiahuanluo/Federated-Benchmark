@@ -1,61 +1,31 @@
-import os
-import sys
 import json
 import numpy
 import logging
-import torch
 from torch.utils.data import DataLoader
-from torch.autograd import Variable
 from tqdm import tqdm
-from models import Darknet
+from model.yolo import Darknet
 from utils.utils import *
 from utils.datasets import *
-from utils.parse_config import *
-from test import evaluate
 from data.dataset import Dataset, TestDataset
 from utils import array_tool as at
 from utils.config import opt
 from model import FasterRCNNVGG16
-from trainer import FasterRCNNTrainer
+from model.faster_rcnn_trainer import FasterRCNNTrainer
 from utils.eval_tool import eval_detection_voc
 
 sys.path.append("")
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 torch.set_num_threads(4)
+torch.manual_seed(1234)
+torch.cuda.manual_seed(1234)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+numpy.random.seed(1234)
 
 
 def load_json(filename):
     with open(filename) as f:
         return json.load(f)
-
-
-class ToyModel(object):
-    def __init__(self, task_config):
-        self.model_config = load_json(task_config['model_config_file'])
-        self.model_size = self.model_config['size']
-        self.factor = self.model_config['factor']
-        self.parameters = [
-            numpy.ones((self.model_size, self.model_size)) * 0
-        ]
-
-    def get_weights(self):
-        return self.parameters
-
-    def set_weights(self, parameters):
-        self.parameters = parameters
-
-    def train_one_epoch(self):
-        "return training loss and accuracy"
-        self.parameters = [
-            param + self.factor for param in self.parameters
-        ]
-        return 1, 2
-
-    def validate(self):
-        return self.parameters[0][0, 0], self.parameters[0][0, 0]
-
-    def evaluate(self):
-        return self.parameters[0][0, 0], self.parameters[0][0, 0]
 
 
 class Yolo(object):
@@ -90,6 +60,7 @@ class Yolo(object):
             self.valid_size = self.testset.__len__()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.yolo = Darknet(self.model_config['model_def']).to(self.device)
+        self.yolo.load_darknet_weights(self.model_config['pretrained_weights'])
         logging.info('model construct completed')
         self.best_map = 0
         self.optimizer = torch.optim.Adam(self.yolo.parameters())
@@ -210,7 +181,6 @@ class FasterRCNN(object):
         if self.opt.load_path:
             self.trainer.load(self.opt.load_path)
             logging.info('load pretrained model from %s' % self.opt.load_path)
-        # self.trainer.vis.text(self.dataset.db.label_names, win='labels')
         self.best_map = 0
         self.lr_ = self.opt.lr
 
@@ -238,8 +208,6 @@ class FasterRCNN(object):
             scale = at.scalar(scale)
             img, bbox, label = img.cuda().float(), bbox_.cuda(), label_.cuda()
             self.trainer.train_step(img, bbox, label, scale)
-
-            ### GET mAP samples ###
             if (ii + 1) % self.opt.plot_every == 0:
                 sizes = [sizes[0][0].item(), sizes[1][0].item()]
                 pred_bboxes_, pred_labels_, pred_scores_ = \
@@ -302,13 +270,5 @@ class FasterRCNN(object):
 
 
 class Models:
-    ToyModel = ToyModel
     Yolo = Yolo
     FasterRCNN = FasterRCNN
-
-
-if __name__ == "__main__":
-    # unit tests for each wrapped model
-    # jf = '/data/app/package/Federated-Benchmark-master/data/task_configs/street_20/faster/street_20/faster_rcnn_task.json'
-    # faster = FasterRCNN(load_json(jf))
-    pass

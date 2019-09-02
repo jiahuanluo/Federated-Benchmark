@@ -1,4 +1,3 @@
-import os
 import json
 import random
 import time
@@ -10,7 +9,7 @@ from flask_socketio import *
 from flask_socketio import SocketIO
 import logging
 import argparse
-from model_wrapper import Models
+from model.model_wrapper import Models
 from utils.model_dump import *
 
 datestr = time.strftime('%m%d')
