@@ -2,11 +2,11 @@ import os
 import json
 import xml.etree.ElementTree as ET
 
-sets = [('2007', 'train'), ('2007', 'test')]
-# classes = ["basket", "carton", "chair", "electrombile", "gastank", "sunshade", "table"]
-classes = ["garbage"]
-dataset = "river_16"
-model = "faster"
+sets = ['train', 'test']
+classes = ["basket", "carton", "chair", "electrombile", "gastank", "sunshade", "table"]
+dataset = "street_5"
+model = "yolo"
+num_client = int(dataset.split('_')[-1])
 
 
 def convert(size, box):
@@ -46,7 +46,6 @@ def convert_annotation(anno_path, label_path, image_id):
 
 
 if model == "faster":
-    num_client = int(dataset.split('_')[-1])
     server_task_file = os.path.join("task_configs", model, dataset, "faster_task.json")
     os.makedirs(os.path.dirname(server_task_file), exist_ok=True)
     server_task_config = dict()
@@ -62,7 +61,7 @@ if model == "faster":
     server_task_config["NUM_CLIENTS_CONTACTED_PER_ROUND"] = num_client
     server_task_config["ROUNDS_BETWEEN_VALIDATIONS"] = 1000
     with open(server_task_file, "w") as f:
-        json.dump(server_task_config, f)
+        json.dump(server_task_config, f, indent=4)
 
     model_config_file = os.path.join("task_configs", model, dataset, model + "_model.json")
     model_config = dict()
@@ -72,7 +71,7 @@ if model == "faster":
     model_config["batch_size"] = 1
     model_config["label_names"] = classes
     with open(model_config_file, 'w') as f:
-        json.dump(model_config, f)
+        json.dump(model_config, f, indent=4)
 
     for i in range(1, int(dataset.split('_')[-1]) + 1):
         dir_path = os.path.join(str(i), "ImageSets", "Main", "train.txt")
@@ -86,7 +85,7 @@ if model == "faster":
         task_config["local_epoch"] = 5
 
         with open(task_file_path, "w") as f:
-            json.dump(task_config, f)
+            json.dump(task_config, f, indent=4)
 
 
 elif model == "yolo":
@@ -97,13 +96,13 @@ elif model == "yolo":
     server_task_config["model_config"] = os.path.join("data", "task_configs", model, dataset, "yolo_model.json")
     server_task_config["log_dir"] = "{}/{}".format(model, dataset)
     server_task_config["model_path"] = "yolo_model.pkl"
-    server_task_config["MIN_NUM_WORKERS"] = 20
+    server_task_config["MIN_NUM_WORKERS"] = num_client
     server_task_config["MAX_NUM_ROUNDS"] = 1000
     server_task_config["NUM_TOLERATE"] = -1
-    server_task_config["NUM_CLIENTS_CONTACTED_PER_ROUND"] = 20
+    server_task_config["NUM_CLIENTS_CONTACTED_PER_ROUND"] = num_client
     server_task_config["ROUNDS_BETWEEN_VALIDATIONS"] = 1000
     with open(server_task_file, "w") as f:
-        json.dump(server_task_config, f)
+        json.dump(server_task_config, f, indent=4)
 
     model_config_file = os.path.join("task_configs", model, dataset, model + "_model.json")
     model_config = dict()
@@ -113,7 +112,7 @@ elif model == "yolo":
     model_config["gradient_accumulations"] = 2
     model_config["img_size"] = 416
     with open(model_config_file, 'w') as f:
-        json.dump(model_config, f)
+        json.dump(model_config, f, indent=4)
     for i in range(1, int(dataset.split('_')[-1]) + 1):
         label_path = os.path.join(dataset, str(i), "labels")
         if not os.path.exists(label_path):
@@ -139,4 +138,4 @@ elif model == "yolo":
         task_config["local_epoch"] = 5
         task_config["batch_size"] = 1
         with open(task_file_path, "w") as f:
-            json.dump(task_config, f)
+            json.dump(task_config, f, indent=4)
