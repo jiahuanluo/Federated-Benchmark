@@ -23,7 +23,7 @@ if [ ! -n "$PORT" ];then
 fi
 
 if [ ! -d "experiments/logs/`date +'%m%d'`/${MODEL}/${DATASET}" ];then
-	mkdir "experiments/logs/`date +'%m%d'`/${MODEL}/${DATASET}"
+	mkdir -p "experiments/logs/`date +'%m%d'`/${MODEL}/${DATASET}"
 fi
 
 LOG="experiments/logs/`date +'%m%d'`/${MODEL}/${DATASET}/fl_server.log"
