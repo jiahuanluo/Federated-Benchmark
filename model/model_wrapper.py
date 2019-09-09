@@ -1,6 +1,9 @@
 import json
 import numpy
 import logging
+import sys
+import os
+import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from model.yolo import Darknet
@@ -12,6 +15,7 @@ from utils.config import opt
 from model import FasterRCNNVGG16
 from model.faster_rcnn_trainer import FasterRCNNTrainer
 from utils.eval_tool import eval_detection_voc
+
 
 sys.path.append("")
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -60,6 +64,7 @@ class Yolo(object):
             self.valid_size = self.testset.__len__()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.yolo = Darknet(self.model_config['model_def']).to(self.device)
+        assert os.path.exists(self.model_config['pretrained_weights'])
         self.yolo.load_darknet_weights(self.model_config['pretrained_weights'])
         logging.info('model construct completed')
         self.best_map = 0
