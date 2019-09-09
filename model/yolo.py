@@ -236,6 +236,8 @@ class Darknet(nn.Module):
 
     def __init__(self, config_path, img_size=416):
         super(Darknet, self).__init__()
+        #config_path = "config/yolov3.cfg"
+        print(config_path)
         self.module_defs = parse_model_config(config_path)
         self.hyperparams, self.module_list = create_modules(self.module_defs)
         self.yolo_layers = [layer[0] for layer in self.module_list if hasattr(layer[0], "metrics")]
