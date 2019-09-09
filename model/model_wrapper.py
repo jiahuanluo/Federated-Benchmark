@@ -36,7 +36,6 @@ class Yolo(object):
     def __init__(self, task_config):
         self.task_config = task_config
         self.model_config = load_json(task_config['model_config'])
-        self.log_filename = task_config['log_filename']
         print(self.model_config)
         if 'train' in self.task_config:
             self.dataset = ListDataset(self.task_config['train'],
