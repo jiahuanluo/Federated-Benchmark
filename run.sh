@@ -29,8 +29,8 @@ fi
 
 for i in $(seq 1 ${NUM_CLIENT}); do
 	nohup python3 fl_client.py \
-	     --gpu $((($i % 3 + 5)))\
-	     --config_file data/task_configs/${DATASET}/${MODEL}_task_$i.json \
+	     --gpu $((($i % 8)))\
+	     --config_file data/task_configs/${MODEL}/${DATASET}/${MODEL}_task$i.json \
 	     --ignore_load True \
 	     --port ${PORT} &
 done

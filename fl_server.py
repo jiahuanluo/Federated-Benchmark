@@ -28,13 +28,13 @@ class Aggregator(object):
     def __init__(self, task_config, logger):
         self.task_config = task_config
         self.model_name = task_config['model_name']
+        self.logger = logger
+        self.logger.info(self.get_model_description())
+ 
         self.current_weights = self.get_init_parameters()
         self.model_path = task_config['model_path']
         # weights should be a ordered list of parameter
-        self.logger = logger
-        self.logger.info(self.get_model_description())
-
-        # for stats
+       # for stats
         self.train_losses = []
         self.avg_test_losses = []
         self.avg_test_maps = []
