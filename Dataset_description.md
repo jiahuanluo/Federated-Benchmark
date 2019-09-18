@@ -14,17 +14,13 @@ We introduce two realistic federated datasets.
 * **Federated Street**, a real-world object detection dataset that annotates images captured by a set of street cameras 
 based on object present in them, including 7 classes. In this dataset, each or every few cameras serve as a device.
 
-* **Federated River**, a dataset built from images of a set of river cameras. Here, every camera focuses on part of 
-a river and each or every few of them serve as a device. The target of this dataset is to locate the garbage on the river. 
-
  | Dataset | Number of devices | Total samples | Number of class| 
  |:---:|:---:|:---:|:---:|
  | Federated Street | 5, 20 | 956 | 7 |
- | Federated River | 16 | 11072 | 1 |
  
 ### File descriptions
 
-* **federated_street.tar.gz** contains the image data and ground truth for the train and test set of the street data set.
+* **Street_Dataset.tar** contains the image data and ground truth for the train and test set of the street data set.
     * **Images**: The directory which contains the train and test image data.
     * **train_label.json**: The annotations file is saved in json format. **train_label.json** is a `list`, which 
     contains the annotation information of the Images set. The length of `list` is the same as the number of image and each value
@@ -37,31 +33,6 @@ a river and each or every few of them serve as a device. The target of this data
      &emsp;&emsp;    `"image_id"`: the id of the train image, for example 009579.  
      &emsp;&emsp;    `"device1_id"`: the id of device1 ,specifies which device the image is on.   
      &emsp;&emsp;    `"device2_id"`: the id of device2.    
-     &emsp;&emsp;    `"items"`: [  
-     &emsp;&emsp;&emsp;       {  
-     &emsp;&emsp;&emsp;&emsp;          `"class"`: the class of one object,  
-     &emsp;&emsp;&emsp;&emsp;          `"bbox"`: ["xmin", "ymin", "xmax", "ymax"], the coordinates of a bounding box  
-     &emsp;&emsp;&emsp;       },  
-     &emsp;&emsp;&emsp;       ...  
-     &emsp;&emsp;&emsp;       ]  
-     &emsp;     },  
-     &emsp;     ...  
-    ]
-    * **test_label.json**: The annotations of test data are almost the same as of the **train_label.json**. The only difference between them is that 
-    the `image_info` of test data does not have the key `device_id`.  
-   
-
-* **federated_river.tar.gz** contains the image data and ground truth for the train and test set of the river data set.
-
-    * **Images**: The directory which contains the train and test image data.
-    * **train_label.json**: The annotations file is saved in json format. **train_label.json** is a `list`, which 
-    contains the annotation information of the Images set. The length of `list` is the same as the number of image and each value
-    in the `list` represents one image_info. Each `image_info` is in format of `dictionary` with keys and values. The keys 
-    of `image_info` are `image_id`, `device_id` and `items`. `items` is a list, which may contain multiple objects.  
-    [  
-     &emsp;    {  
-     &emsp;&emsp;    `"image_id"`: the id of the train image, for example 009579.  
-     &emsp;&emsp;    `"device_id"`: the id of device ,specifies which device the image is on.   
      &emsp;&emsp;    `"items"`: [  
      &emsp;&emsp;&emsp;       {  
      &emsp;&emsp;&emsp;&emsp;          `"class"`: the class of one object,  
