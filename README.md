@@ -43,11 +43,11 @@ We implemented two mainstream object detection algorithms (YOLOv3 and Faster R-C
     ```bash
     sh ./run_server.sh street_5 yolo 1234
     ```
-2. Stert clients
+2. Start clients
     ```bash
     sh ./run.sh street_5 5 yolo 1234
     ```
-3. If you want to stop training
+3. Stop training
     ```bash
     sh ./stop.sh street_5 yolo
     ```
