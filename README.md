@@ -47,7 +47,7 @@ We implemented two mainstream object detection algorithms (YOLOv3 and Faster R-C
     ```bash
     sh ./run.sh street_5 5 yolo 1234
     ```
-If you want to stop training
-```bash
-sh ./stop.sh street_5 yolo
-```
+3. If you want to stop training
+    ```bash
+    sh ./stop.sh street_5 yolo
+    ```
